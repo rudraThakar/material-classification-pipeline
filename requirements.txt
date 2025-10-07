@@ -1,0 +1,13 @@
+torch>=2.1.0
+torchvision>=0.16.0
+torchaudio>=2.1.0
+numpy>=1.23
+pandas>=2.0
+scikit-learn>=1.2
+Pillow>=9.5
+tqdm>=4.65
+matplotlib>=3.7
+seaborn>=0.12
+onnx>=1.14
+onnxruntime>=1.15
+
