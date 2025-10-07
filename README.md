@@ -108,3 +108,45 @@ Behavior:
 - ONNX export is provided for deployment scenarios; ensure opset compatibility with your target runtime.
 
 
+### Training Pipeline Details
+- Data ingestion
+  - ImageFolder structure (`data/train`, `data/val`).
+  - Class index mapping saved to `models/class_index.json`.
+- Preprocessing and augmentations (train)
+  - RandomResizedCrop to 224×224 (scale 0.7–1.0, slight aspect jitter).
+  - RandomHorizontalFlip (p=0.5).
+  - ColorJitter (brightness/contrast/saturation/hue small ranges).
+  - AutoAugment (ImageNet policy) when available.
+  - ToTensor + Normalize (ImageNet mean/std).
+  - RandomErasing (p=0.1).
+- Preprocessing (validation)
+  - Resize to 224×224, ToTensor, Normalize (ImageNet mean/std).
+- Model
+  - Backbone: `torchvision.models.resnet18` with pretrained weights (optional via `--no_pretrain`).
+  - Replace final FC with `Linear(in_features, num_classes)`.
+- Optimization
+  - Optimizer: AdamW, lr=1e-3 (configurable), weight_decay=1e-4.
+  - Loss: CrossEntropyLoss with label smoothing (default 0.05).
+  - Warmup: linear warmup for first `--warmup_epochs`.
+  - Scheduler: CosineAnnealingLR for remaining epochs.
+- Fine-tuning schedule
+  - Freeze all layers except FC for `--freeze_epochs` (default 1).
+  - Unfreeze whole network afterwards and continue training.
+- Training loop
+  - Mixed CPU/GPU support; `--cpu` forces CPU.
+  - Per-epoch: train loss tracking; evaluate on val set each epoch.
+- Metrics and evaluation
+  - Metrics: accuracy, macro precision, macro recall.
+  - Confusion matrix computed each epoch; CSV written to `results/`.
+  - Training history written to `results/training_history.csv`.
+- Checkpointing
+  - Best validation accuracy checkpoint saved to `models/best_model.pt` with `model_state`, `img_size`, and `num_classes`.
+- Export (deployment)
+  - TorchScript tracing to `models/model.torchscript.pt`.
+  - ONNX export to `models/model.onnx` (dynamic batch; opset 17).
+- Inference
+  - TorchScript via PyTorch or ONNX via ONNX Runtime.
+  - Outputs predicted class and confidence; low-confidence flag based on threshold.
+- Simulation loop
+  - Iterates images from a folder at intervals, prints prediction and logs to CSV.
+
